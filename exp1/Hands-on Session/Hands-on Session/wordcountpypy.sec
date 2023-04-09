@@ -1,0 +1,27 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.types import *
+from pyspark.sql.types import StringType
+from pyspark.sql.types import StructType
+from pyspark.sql.types import StructField
+from pyspark.sql import Row
+
+sparkSession = SparkSession.builder.appName("wordCount").getOrCreate()
+
+data = ['hello hi hi hallo', 'bonjour hola hi ciao', 'nihao konnichiwa ola', 'hola nihao hello']
+rdd = sparkSession.sparkContext.parallelize(data)
+rdd.first()
+rdd.collect()
+counts = rdd.flatMap(lambda line: line.split(' ')) \
+             .map(lambda word: (word, 1)) \
+             .reduceByKey(lambda a, b: a + b)
+counts.collect()
+
+
+# Alternative 2: reading from file. Put the file in the same location than notebook.
+rdd = sparkSession.sparkContext.textFile("./data.txt")
+counts = rdd.flatMap(lambda line: line.split(' ')) \
+             .map(lambda word: (word, 1)) \
+             .reduceByKey(lambda a, b: a + b)
+counts.collect()
+
+#Note: in your solutions you should avoid operations like collect() and similar ones which bring all the data to the driver (master node).

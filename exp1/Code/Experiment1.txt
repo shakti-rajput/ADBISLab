@@ -1,0 +1,27 @@
+from pyspark import SparkContext,SparkConf
+from pyspark.sql import SparkSession
+import csv
+
+sc = SparkContext()
+spark = SparkSession.builder.appName('Experiment1').getOrCreate()
+
+userLibraryRdd = sc.textFile("Datasets/users_libraries.txt")
+userLibraryRdd = userLibraryRdd.map(lambda line: line.split(";")).map(lambda line: (line[0],list(map(int,line[1].split(",")))))
+
+def processPaperCsv(line):
+    paperCsv = csv.reader([line.replace("\0", "")], delimiter=',', quoting=csv.QUOTE_MINIMAL)
+    paperCsvList = next(paperCsv)
+    return paperCsvList[0], paperCsvList[14]
+
+paperCsvRdd = sc.textFile("Datasets/papers.csv")
+paperCsvRdd = paperCsvRdd.map(processPaperCsv).filter(lambda x: x[1] != "").map(lambda x: (x[0],x[1].split(" ")))
+
+stopWords = sc.textFile("Datasets/stopwords_en.txt")
+stopWordsBroadcast = sc.broadcast(stopWords.collect())
+
+def removeStopWords(x):
+    abstractwordsList = x.copy()
+    for a in abstractwordsList:
+        if w in stopWordsBroadcast.value:
+            abstractwordsList.remove(w)
+    return abstractwordsList
